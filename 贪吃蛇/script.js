@@ -53,10 +53,9 @@ class SnakePlayer {
         this.alive = true;
         this.frozen = false;
         this.frozenUntil = 0;
-        // 支持多个分身
         this.skills = {
             q: { cooldown: 8000, lastUsed: 0, projectile: null, exploded: false },
-            w: { cooldown: 12000, lastUsed: 0, zones: [] },
+            w: { cooldown: 15000, lastUsed: 0, timeStopActive: false, timeStopEnd: 0, zones: [] },
             e: { cooldown: 3000, lastUsed: 0, clones: [], maxClones: 5, cloneLifetime: 15000 },
             r: { cooldown: 25000, lastUsed: 0, blackhole: null }
         };
@@ -67,9 +66,13 @@ let player1;
 let singleGameLoop = null;
 
 function initSinglePlayer() {
+    foods = [];
+    particles = [];
+    if (singleGameLoop) { clearInterval(singleGameLoop); singleGameLoop = null; }
     player1 = new SnakePlayer(1, '#00ff88', 4, 4);
     generateFoodsLocal(MAX_FOOD);
     updateScorePanel();
+    renderNeeded = true;
 }
 
 function generateFoodsLocal(count = 1) {
@@ -80,7 +83,8 @@ function generateFoodsLocal(count = 1) {
             newFood = { 
                 x: Math.floor(Math.random() * TILE_COUNT), 
                 y: Math.floor(Math.random() * TILE_COUNT),
-                frozen: false
+                frozen: false,
+                timeFrozen: false
             };
             valid = !foods.some(f => f.x === newFood.x && f.y === newFood.y);
             valid = valid && !player1.snake.some(s => s.x === newFood.x && s.y === newFood.y);
@@ -128,7 +132,6 @@ function updateSinglePlayer() {
     for (const clone of p.skills.e.clones) {
         const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
         
-        // 追踪最近的食物
         let targetFood = null;
         let minDist = Infinity;
         foods.forEach(f => {
@@ -167,7 +170,6 @@ function updateSinglePlayer() {
                     createImpactEat(nx, ny);
                     foods.splice(foodIdx, 1);
                     generateFoodsLocal(1);
-                    // 分身吃到后本体变长
                     p.snake.push({ x: p.snake[p.snake.length-1].x, y: p.snake[p.snake.length-1].y });
                 }
                 break;
@@ -203,6 +205,17 @@ function updateSinglePlayer() {
             });
         }
     }
+    
+    // 更新时间静止场
+    if (p.skills.w.timeStopActive) {
+        if (now > p.skills.w.timeStopEnd) {
+            p.skills.w.timeStopActive = false;
+            foods.forEach(f => { f.timeFrozen = false; });
+        }
+    }
+    foods.forEach(f => {
+        if (f.timeFrozen && now > f.unfreezeAt) f.timeFrozen = false;
+    });
     
     // 更新冰霜领域
     p.skills.w.zones = p.skills.w.zones.filter(z => now - z.createdAt < 6000);
@@ -262,7 +275,7 @@ function endSingleGame() {
     isGameRunning = false;
     if (singleGameLoop) { clearInterval(singleGameLoop); singleGameLoop = null; }
     winnerText.textContent = '游戏结束';
-    finalScores.innerHTML = `<div class="score-row"><span class="player-tag p1">得分</span><span class="score-value">${player1.score}</span></div>`;
+    finalScores.innerHTML = '<div class="score-row"><span class="player-tag p1">得分</span><span class="score-value">' + player1.score + '</span></div>';
     gameOverScreen.classList.remove('hidden');
 }
 
@@ -276,6 +289,7 @@ function startSinglePlayerGame() {
     if (singleGameLoop) clearInterval(singleGameLoop);
     singleGameLoop = setInterval(updateSinglePlayer, gameSpeed);
     renderNeeded = true;
+    requestAnimationFrame(gameLoop);
 }
 
 // ==================== 在线模式 ====================
@@ -327,7 +341,7 @@ function handleOnlineMessage(data) {
             break;
         case 'skill':
             if (data.playerId === myPlayerId) {
-                const names = { q: '💥 核弹!', w: '❄️ 冰霜领域!', e: '👥 镜像分身!', r: '🕳️ 黑洞!' };
+                const names = { q: '核弹!', w: '冰霜领域!', e: '镜像分身!', r: '黑洞!' };
                 showEffect(names[data.skill], data.effect);
             }
             createSpecialEffect(data.effect);
@@ -342,7 +356,7 @@ function updateOnlinePlayersList() {
     let html = '<h3>在线玩家 (' + entries.length + '/4)</h3>';
     entries.forEach(([id, player]) => {
         const isMe = parseInt(id) === myPlayerId;
-        html += `<div class="player-waiting" style="border-color: ${player.color};"><span class="player-tag p${id}">P${id}</span>${isMe ? '(你)' : ''} ${player.score}分</div>`;
+        html += '<div class="player-waiting" style="border-color: ' + player.color + ';"><span class="player-tag p' + id + '">P' + id + '</span>' + (isMe ? '(你)' : '') + ' ' + player.score + '分</div>';
     });
     playersList.innerHTML = html;
     if (entries.length >= 1) startBtn.classList.remove('hidden');
@@ -389,14 +403,14 @@ function createImpactEat(gridX, gridY) {
     impactOverlay.style.setProperty('--x', x + '%'); impactOverlay.style.setProperty('--y', y + '%');
     impactOverlay.className = 'impact-overlay eat';
     gameContainer.classList.add('shake');
-    setTimeout(() => { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 350);
+    setTimeout(function() { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 350);
 }
 
 function createImpactNuke() {
     impactOverlay.style.background = 'radial-gradient(circle, rgba(255,100,0,0.8) 0%, rgba(255,0,0,0.5) 30%, transparent 70%)';
     impactOverlay.className = 'impact-overlay nuke';
     gameContainer.classList.add('shake');
-    setTimeout(() => { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 600);
+    setTimeout(function() { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 600);
     
     for (let i = 0; i < 50; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -413,34 +427,53 @@ function createImpactNuke() {
 
 function createSpecialEffect(type) {
     const effects = {
-        nuke: () => { impactOverlay.style.background = 'radial-gradient(circle, rgba(255,100,0,0.7) 0%, transparent 60%)'; impactOverlay.className = 'impact-overlay nuke'; },
-        freeze: () => { impactOverlay.className = 'impact-overlay freeze'; },
-        clone: () => { impactOverlay.style.background = 'radial-gradient(circle, rgba(255,0,255,0.5) 0%, transparent 50%)'; impactOverlay.className = 'impact-overlay skill'; },
-        blackhole: () => { impactOverlay.style.background = 'radial-gradient(circle, rgba(136,0,255,0.7) 0%, transparent 70%)'; impactOverlay.className = 'impact-overlay blackhole'; }
+        nuke: function() { impactOverlay.style.background = 'radial-gradient(circle, rgba(255,100,0,0.7) 0%, transparent 60%)'; impactOverlay.className = 'impact-overlay nuke'; },
+        freeze: function() { impactOverlay.className = 'impact-overlay freeze'; },
+        clone: function() { impactOverlay.style.background = 'radial-gradient(circle, rgba(255,0,255,0.5) 0%, transparent 50%)'; impactOverlay.className = 'impact-overlay skill'; },
+        blackhole: function() { impactOverlay.style.background = 'radial-gradient(circle, rgba(136,0,255,0.7) 0%, transparent 70%)'; impactOverlay.className = 'impact-overlay blackhole'; },
+        timestop: function() { 
+            impactOverlay.style.background = 'radial-gradient(circle, rgba(0,255,255,0.6) 0%, rgba(138,43,226,0.4) 40%, transparent 70%)'; 
+            impactOverlay.className = 'impact-overlay timestop';
+            for (let i = 0; i < 40; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 8 + 3;
+                particles.push({
+                    x: canvas.width / 2, y: canvas.height / 2,
+                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    life: 1, decay: 0.012,
+                    color: ['#00ffff', '#8a2be2', '#00ced1', '#ff00ff'][Math.floor(Math.random() * 4)],
+                    size: Math.random() * 6 + 3
+                });
+            }
+        }
     };
     if (effects[type]) effects[type]();
-    gameContainer.classList.add('shake');
-    setTimeout(() => { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 500);
+    if (type !== 'timestop') {
+        gameContainer.classList.add('shake');
+        setTimeout(function() { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 500);
+    } else {
+        setTimeout(function() { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 800);
+    }
 }
 
 function createImpactDeath() {
     impactOverlay.className = 'impact-overlay death';
     gameContainer.classList.add('shake');
-    setTimeout(() => { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 500);
+    setTimeout(function() { impactOverlay.className = 'impact-overlay'; gameContainer.classList.remove('shake'); }, 500);
 }
 
 // ==================== UI ====================
 function updateScorePanel() {
     let html = '';
     const toShow = isOnline ? players : { 1: player1 };
-    Object.entries(toShow).forEach(([id, p]) => { if (p) html += `<div class="player-score p${id}"><span class="player-tag p${id}">P${id}</span><span class="score-value">${p.score}</span></div>`; });
+    Object.entries(toShow).forEach(function([id, p]) { if (p) html += '<div class="player-score p' + id + '"><span class="player-tag p' + id + '">P' + id + '</span><span class="score-value">' + p.score + '</span></div>'; });
     scorePanel.innerHTML = html;
 }
 
 function showEffect(text, type) {
     effectIndicator.textContent = text;
     effectIndicator.className = 'effect-indicator show ' + type;
-    setTimeout(() => effectIndicator.classList.remove('show'), 1500);
+    setTimeout(function() { effectIndicator.classList.remove('show'); }, 1500);
 }
 
 function updateSkillUI() {
@@ -479,43 +512,45 @@ function draw() {
     
     const toDraw = isOnline ? players : { 1: player1 };
     
-    Object.values(toDraw).forEach(p => {
-        if (p && p.skills.w.zones) p.skills.w.zones.forEach(z => drawIceZone(z.x, z.y));
+    Object.values(toDraw).forEach(function(p) {
+        if (p && p.skills && p.skills.w && p.skills.w.zones) p.skills.w.zones.forEach(function(z) { drawIceZone(z.x, z.y); });
     });
     
-    Object.values(toDraw).forEach(p => {
-        if (p && p.skills.q.projectile && !p.skills.q.projectile.exploded) drawNuke(p.skills.q.projectile);
+    Object.values(toDraw).forEach(function(p) {
+        if (p && p.skills && p.skills.q && p.skills.q.projectile && !p.skills.q.projectile.exploded) drawNuke(p.skills.q.projectile);
     });
     
-    Object.values(toDraw).forEach(p => {
-        if (p && p.skills.r.blackhole) drawBlackhole(p.skills.r.blackhole);
+    Object.values(toDraw).forEach(function(p) {
+        if (p && p.skills && p.skills.r && p.skills.r.blackhole) drawBlackhole(p.skills.r.blackhole);
     });
     
-    foods.forEach(f => drawFood(f));
+    foods.forEach(function(f) { drawFood(f); });
     
-    Object.values(toDraw).forEach(p => {
-        if (p && p.skills.e.clones) {
-            p.skills.e.clones.forEach(clone => drawClone(clone, p.color));
+    Object.values(toDraw).forEach(function(p) {
+        if (p && p.skills && p.skills.e && p.skills.e.clones) {
+            p.skills.e.clones.forEach(function(clone) { drawClone(clone, p.color); });
         }
     });
     
-    Object.entries(toDraw).forEach(([id, p]) => { if (p && p.snake) drawSnake(p, p.frozen); });
+    Object.entries(toDraw).forEach(function([id, p]) { if (p && p.snake) drawSnake(p, p.frozen); });
     
     drawParticles();
 }
 
-// 蛇 - 矩形画风
-function drawSnake(player, frozen = false) {
+function drawSnake(player, frozen) {
+    if (!player || !player.snake) return;
+    frozen = frozen || false;
+    
     const hasClones = player.skills && player.skills.e && player.skills.e.clones && player.skills.e.clones.length > 0;
     
-    player.snake.forEach((seg, idx) => {
+    player.snake.forEach(function(seg, idx) {
         const isHead = idx === 0;
         const px = seg.x * GRID_SIZE + 1.5;
         const py = seg.y * GRID_SIZE + 1.5;
         const size = GRID_SIZE - 3;
         
         let color = isHead ? (frozen ? '#0088ff' : (hasClones ? '#ff00ff' : player.color)) : 
-            `rgb(0, ${Math.floor(200 - idx * 8)}, ${Math.floor(100 - idx * 4)})`;
+            'rgb(0, ' + Math.floor(200 - idx * 8) + ', ' + Math.floor(100 - idx * 4) + ')';
         
         if (isHead || idx % 2 === 0) {
             ctx.shadowColor = frozen ? '#0088ff' : (hasClones ? '#ff00ff' : player.color);
@@ -554,10 +589,29 @@ function drawSnake(player, frozen = false) {
 }
 
 function drawFood(f) {
+    if (!f) return;
+    
     const px = f.x * GRID_SIZE + 10, py = f.y * GRID_SIZE + 10;
     const t = Date.now() / 250, pulse = Math.sin(t) * 0.25 + 1, float = Math.sin(t * 2) * 2;
     
-    if (f.frozen) {
+    if (f.timeFrozen) {
+        const t2 = Date.now() / 150;
+        const pulse2 = Math.sin(t2) * 0.2 + 1;
+        ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 25;
+        const grad = ctx.createRadialGradient(px, py, 0, px, py, GRID_SIZE / 2 - 2);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.3, '#00ffff');
+        grad.addColorStop(0.6, '#8a2be2');
+        grad.addColorStop(1, '#4b0082');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(px, py, (GRID_SIZE / 2 - 3) * pulse2, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+            const angle = (Math.PI * 2 / 3) * i + t2 * 0.5;
+            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(angle) * 12, py + Math.sin(angle) * 12); ctx.stroke();
+        }
+    } else if (f.frozen) {
         ctx.shadowColor = '#0088ff'; ctx.shadowBlur = 20;
         const grad = ctx.createRadialGradient(px - 3, py - 3 + float, 0, px, py + float, GRID_SIZE / 2 - 2);
         grad.addColorStop(0, '#aaddff'); grad.addColorStop(0.5, '#0088ff'); grad.addColorStop(1, '#004488');
@@ -582,6 +636,8 @@ function drawFood(f) {
 }
 
 function drawNuke(proj) {
+    if (!proj) return;
+    
     const px = proj.x * GRID_SIZE + 10, py = proj.y * GRID_SIZE + 10;
     const t = Date.now() / 100;
     
@@ -607,6 +663,8 @@ function drawNuke(proj) {
 }
 
 function drawBlackhole(bh) {
+    if (!bh) return;
+    
     const px = bh.x * GRID_SIZE + 10, py = bh.y * GRID_SIZE + 10;
     const r = bh.radius * GRID_SIZE;
     const pulse = Math.sin(bh.phase) * 0.2 + 1;
@@ -633,10 +691,10 @@ function drawIceZone(x, y) {
     
     ctx.shadowColor = '#0088ff';
     ctx.shadowBlur = 15;
-    ctx.fillStyle = `rgba(0, 136, 255, ${alpha})`;
+    ctx.fillStyle = 'rgba(0, 136, 255, ' + alpha + ')';
     ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
     
-    ctx.strokeStyle = `rgba(150, 220, 255, ${alpha})`;
+    ctx.strokeStyle = 'rgba(150, 220, 255, ' + alpha + ')';
     ctx.lineWidth = 2;
     for (let i = 0; i < 4; i++) {
         const angle = (Math.PI / 2) * i + t;
@@ -645,9 +703,10 @@ function drawIceZone(x, y) {
     ctx.shadowBlur = 0;
 }
 
-// 分身 - 矩形画风
 function drawClone(clone, color) {
-    clone.forEach((seg, idx) => {
+    if (!clone) return;
+    
+    clone.forEach(function(seg, idx) {
         const px = seg.x * GRID_SIZE + 3, py = seg.y * GRID_SIZE + 3;
         const size = GRID_SIZE - 6;
         const alpha = 0.6 - idx * 0.1;
@@ -663,26 +722,66 @@ function drawClone(clone, color) {
 }
 
 // ==================== 主循环 ====================
-function gameLoop() {
-    if (renderNeeded) { draw(); renderNeeded = false; }
-    updateParticles();
-    requestAnimationFrame(gameLoop);
+let lastTime = 0;
+const PARTICLE_FPS = 60;
+let gameLoopRunning = false;
+
+function gameLoop(timestamp) {
+    gameLoopRunning = true;
+    
+    if (timestamp - lastTime >= 1000 / PARTICLE_FPS) {
+        lastTime = timestamp;
+        
+        if (renderNeeded || particles.length > 0) {
+            if (renderNeeded) { draw(); renderNeeded = false; }
+            if (particles.length > 0) updateParticles();
+        }
+    }
+    
+    if (renderNeeded || particles.length > 0 || isGameRunning) {
+        requestAnimationFrame(gameLoop);
+    } else {
+        gameLoopRunning = false;
+    }
 }
 
 // ==================== 控制 ====================
-function startSinglePlayer() { isOnline = false; connectionStatus.querySelector('.status-text').textContent = '单机模式'; startSinglePlayerGame(); }
-function showOnlineMenu() { startScreen.classList.add('hidden'); onlineMenu.classList.remove('hidden'); createBackgroundParticles(); }
-function showMainMenu() { onlineMenu.classList.add('hidden'); startScreen.classList.remove('hidden'); if (ws) ws.close(); }
-function returnToMenu() { gameOverScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); isGameRunning = false; if (ws) ws.close(); }
+function startSinglePlayer() { 
+    isOnline = false; 
+    connectionStatus.querySelector('.status-text').textContent = '单机模式'; 
+    startSinglePlayerGame(); 
+}
 
-document.addEventListener('keydown', (e) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+function showOnlineMenu() { 
+    startScreen.classList.add('hidden'); 
+    onlineMenu.classList.remove('hidden'); 
+    createBackgroundParticles(); 
+}
+
+function showMainMenu() { 
+    onlineMenu.classList.add('hidden'); 
+    startScreen.classList.remove('hidden'); 
+    if (ws) ws.close(); 
+}
+
+function returnToMenu() { 
+    gameOverScreen.classList.add('hidden'); 
+    startScreen.classList.remove('hidden'); 
+    isGameRunning = false; 
+    if (ws) ws.close(); 
+}
+
+document.addEventListener('keydown', function(e) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].indexOf(e.key) >= 0) e.preventDefault();
     if (!isGameRunning) return;
     
     const player = isOnline ? players[myPlayerId] : player1;
     if (!player || !player.alive) return;
     
-    const sendDir = (dir) => { if (isOnline) sendOnline({ type: 'direction', direction: dir }); else if (dir.x !== -player.direction.x && dir.y !== -player.direction.y) player.nextDirection = dir; };
+    var sendDir = function(dir) { 
+        if (isOnline) sendOnline({ type: 'direction', direction: dir }); 
+        else if (dir.x !== -player.direction.x && dir.y !== -player.direction.y) player.nextDirection = dir; 
+    };
     
     switch (e.key) {
         case 'ArrowUp': sendDir({ x: 0, y: -1 }); break;
@@ -692,12 +791,14 @@ document.addEventListener('keydown', (e) => {
         case 'q': case 'w': case 'e': case 'r':
             if (isOnline) sendOnline({ type: 'skill', skill: e.key });
             else {
-                const p = player;
-                const now = Date.now();
-                const sk = p.skills[e.key];
+                var p = player;
+                var now = Date.now();
+                var sk = p.skills[e.key];
                 if (now - sk.lastUsed >= sk.cooldown) {
                     sk.lastUsed = now;
                     renderNeeded = true;
+                    if (!gameLoopRunning) requestAnimationFrame(gameLoop);
+                    
                     switch (e.key) {
                         case 'q':
                             sk.projectile = { 
@@ -711,29 +812,37 @@ document.addEventListener('keydown', (e) => {
                             }; 
                             break;
                         case 'w':
-                            const h = p.snake[0];
-                            [[0,0],[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx,dy]) => { 
-                                if (h.x+dx>=0&&h.x+dx<TILE_COUNT&&h.y+dy>=0&&h.y+dy<TILE_COUNT) 
-                                    sk.zones.push({x:h.x+dx,y:h.y+dy,createdAt:now}); 
+                            if (!sk.timeStopActive) {
+                                sk.timeStopActive = true;
+                                sk.timeStopEnd = now + 8000;
+                                foods.forEach(function(f) { f.timeFrozen = true; f.unfreezeAt = sk.timeStopEnd; });
+                                showEffect('时间静止!', 'timestop');
+                                createSpecialEffect('timestop');
+                            }
+                            var h = p.snake[0];
+                            [[0,0],[0,1],[0,-1],[1,0],[-1,0]].forEach(function(d) { 
+                                var dx = d[0], dy = d[1];
+                                if (h.x+dx>=0 && h.x+dx<TILE_COUNT && h.y+dy>=0 && h.y+dy<TILE_COUNT) 
+                                    sk.zones.push({x:h.x+dx, y:h.y+dy, createdAt:now}); 
                             }); 
                             break;
                         case 'e':
                             if (sk.clones.length < sk.maxClones) {
-                                let validPos = false;
-                                let newClone = [];
-                                let attempts = 0;
+                                var validPos = false;
+                                var newClone = [];
+                                var attempts = 0;
                                 while (!validPos && attempts < 50) {
-                                    const startX = Math.floor(Math.random() * TILE_COUNT);
-                                    const startY = Math.floor(Math.random() * TILE_COUNT);
-                                    const overlap = p.snake.some(s => s.x === startX && s.y === startY) ||
-                                                   sk.clones.some(c => c.some(s => s.x === startX && s.y === startY));
+                                    var startX = Math.floor(Math.random() * TILE_COUNT);
+                                    var startY = Math.floor(Math.random() * TILE_COUNT);
+                                    var overlap = p.snake.some(function(s) { return s.x === startX && s.y === startY; }) ||
+                                                   sk.clones.some(function(c) { return c.some(function(s) { return s.x === startX && s.y === startY; }); });
                                     if (!overlap) {
                                         newClone = [
                                             { x: startX, y: startY },
                                             { x: startX + 1, y: startY },
                                             { x: startX + 2, y: startY }
                                         ];
-                                        if (newClone.every(seg => seg.x >= 0 && seg.x < TILE_COUNT && seg.y >= 0 && seg.y < TILE_COUNT)) {
+                                        if (newClone.every(function(seg) { return seg.x >= 0 && seg.x < TILE_COUNT && seg.y >= 0 && seg.y < TILE_COUNT; })) {
                                             validPos = true;
                                         }
                                     }
@@ -742,10 +851,10 @@ document.addEventListener('keydown', (e) => {
                                 if (validPos) {
                                     newClone.createdAt = Date.now();
                                     sk.clones.push(newClone);
-                                    showEffect('👥 分身+1!', 'clone');
+                                    showEffect('分身+1!', 'clone');
                                 }
                             } else {
-                                showEffect('👥 分身已满!', 'clone');
+                                showEffect('分身已满!', 'clone');
                             }
                             break;
                         case 'r':
@@ -759,11 +868,11 @@ document.addEventListener('keydown', (e) => {
 });
 
 function createBackgroundParticles() {
-    const c = document.getElementById('particles');
+    var c = document.getElementById('particles');
     c.innerHTML = '';
-    const colors = ['#00ff88', '#00ffff', '#ff00ff', '#ff9500'];
-    for (let i = 0; i < 30; i++) {
-        const p = document.createElement('div');
+    var colors = ['#00ff88', '#00ffff', '#ff00ff', '#ff9500'];
+    for (var i = 0; i < 30; i++) {
+        var p = document.createElement('div');
         p.className = 'particle';
         p.style.left = Math.random() * 100 + '%';
         p.style.animationDelay = Math.random() * 20 + 's';
@@ -773,5 +882,7 @@ function createBackgroundParticles() {
     }
 }
 
+// 初始化
 createBackgroundParticles();
+renderNeeded = true;
 requestAnimationFrame(gameLoop);

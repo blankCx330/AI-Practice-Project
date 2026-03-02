@@ -18,7 +18,7 @@ class Player {
         // 新技能系统 - 围绕得分点
         this.skills = {
             q: { cooldown: 8000, lastUsed: 0, projectile: null },   // 核弹
-            w: { cooldown: 12000, lastUsed: 0, zones: [] },        // 冰霜领域
+            w: { cooldown: 15000, lastUsed: 0, timeStopActive: false, timeStopEnd: 0 },  // 时间静止
             e: { cooldown: 15000, lastUsed: 0, clone: null },       // 镜像分身
             r: { cooldown: 25000, lastUsed: 0, blackhole: null }   // 黑洞
         };
@@ -38,7 +38,8 @@ class Player {
         for (let key in this.skills) {
             this.skills[key].lastUsed = 0;
             this.skills[key].projectile = null;
-            this.skills[key].zones = [];
+            this.skills[key].timeStopActive = false;
+            this.skills[key].timeStopEnd = 0;
             this.skills[key].clone = null;
             this.skills[key].blackhole = null;
         }
@@ -64,7 +65,8 @@ class Room {
                 newFood = { 
                     x: Math.floor(Math.random() * TILE_COUNT), 
                     y: Math.floor(Math.random() * TILE_COUNT),
-                    frozen: false
+                    frozen: false,
+                    timeFrozen: false
                 };
                 validPosition = true;
                 // 检查是否与现有食物重叠
@@ -161,30 +163,6 @@ class Room {
                         this.generateFoods(MAX_FOOD);
                         player.skills.q.projectile = null;
                     }
-            }
-            // ========== Q技能：核弹 ==========
-            if (player.skills.q.projectile) {
-                const proj = player.skills.q.projectile;
-                
-                if (!proj.exploded) {
-                    proj.x += proj.vx;
-                    proj.y += proj.vy;
-                    // 检测是否到达目标点并爆炸
-                    const dist = Math.abs(proj.x - proj.targetX) + Math.abs(proj.y - proj.targetY);
-                    if (dist <= 1 || proj.x < 0 || proj.x >= TILE_COUNT || proj.y < 0 || proj.y >= TILE_COUNT) {
-                        // 爆炸！清理所有食物
-                        proj.exploded = true;
-                        const cleared = this.foods.length;
-                        player.score += cleared * 15;
-                        // 蛇长度增加
-                        for (let i = 0; i < cleared; i++) {
-                            player.snake.push({ x: player.snake[player.snake.length-1].x, y: player.snake[player.snake.length-1].y });
-                        }
-                        events.push({ type: 'nuke', playerId: player.id, cleared: cleared });
-                        this.foods = [];
-                        this.generateFoods(MAX_FOOD);
-            }
-                    }
                 }
             }
             
@@ -254,22 +232,16 @@ class Room {
                 }
             }
             
-            // ========== W技能：冰霜领域 ==========
-            player.skills.w.zones = player.skills.w.zones.filter(zone => now - zone.createdAt < 6000);
-            
-            // 冰霜领域冰冻食物
-            player.skills.w.zones.forEach(z => {
-                this.foods.forEach(f => {
-                    if (f.x === z.x && f.y === z.y && !f.frozen) {
-                        f.frozen = true;
-                        f.unfreezeAt = now + 3000;
-                    }
-                });
-            });
-            
-            // 解冻食物
+            // ========== W技能：时间静止 ==========
+            if (player.skills.w.timeStopActive) {
+                if (now > player.skills.w.timeStopEnd) {
+                    player.skills.w.timeStopActive = false;
+                    this.foods.forEach(f => { f.timeFrozen = false; });
+                }
+            }
+            // 解冻时间冻结的食物
             this.foods.forEach(f => {
-                if (f.frozen && now > f.unfreezeAt) f.frozen = false;
+                if (f.timeFrozen && now > f.unfreezeAt) f.timeFrozen = false;
             });
             
             // ========== 玩家移动 ==========
@@ -336,7 +308,7 @@ class Room {
                 frozen: player.frozen,
                 skills: {
                     q: { cooldown: player.skills.q.cooldown, lastUsed: player.skills.q.lastUsed, projectile: player.skills.q.projectile },
-                    w: { cooldown: player.skills.w.cooldown, lastUsed: player.skills.w.lastUsed, zones: player.skills.w.zones },
+                    w: { cooldown: player.skills.w.cooldown, lastUsed: player.skills.w.lastUsed, timeStopActive: player.skills.w.timeStopActive, timeStopEnd: player.skills.w.timeStopEnd },
                     e: { cooldown: player.skills.e.cooldown, lastUsed: player.skills.e.lastUsed, clone: player.skills.e.clone },
                     r: { cooldown: player.skills.r.cooldown, lastUsed: player.skills.r.lastUsed, blackhole: player.skills.r.blackhole }
                 }
@@ -395,15 +367,13 @@ class Room {
                 this.broadcast({ type: 'skill', playerId: player.id, skill: 'q', effect: 'nuke' });
                 break;
                 
-            case 'w': // 冰霜领域 - 冰冻周围食物
-                const head = player.snake[0];
-                [[0,0],[0,1],[0,-1],[1,0],[-1,0]].forEach(([dx, dy]) => {
-                    const wx = head.x + dx, wy = head.y + dy;
-                    if (wx >= 0 && wx < TILE_COUNT && wy >= 0 && wy < TILE_COUNT) {
-                        skill.zones.push({ x: wx, y: wy, createdAt: now });
-                    }
-                });
-                this.broadcast({ type: 'skill', playerId: player.id, skill: 'w', effect: 'freeze' });
+            case 'w': // 时间静止 - 冻结所有食物
+                if (!skill.timeStopActive) {
+                    skill.timeStopActive = true;
+                    skill.timeStopEnd = now + 8000;
+                    this.foods.forEach(f => { f.timeFrozen = true; f.unfreezeAt = skill.timeStopEnd; });
+                    this.broadcast({ type: 'skill', playerId: player.id, skill: 'w', effect: 'timestop' });
+                }
                 break;
                 
             case 'e': // 镜像分身

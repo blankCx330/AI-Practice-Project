@@ -96,8 +96,26 @@ canvas { display: block; background: transparent; }
     0% { opacity: 0; transform: scale(0.5); }
     20% { opacity: 1; background: radial-gradient(circle, rgba(255,100,0,0.9) 0%, rgba(255,0,0,0.6) 30%, transparent 60%); }
     40% { opacity: 1; background: radial-gradient(circle, rgba(255,200,0,1) 0%, rgba(255,50,0,0.7) 40%, rgba(100,0,0,0.3) 70%, transparent 100%); }
-    100% { opacity: 0; transform: scale(2); }
+    RV|}
+
+@keyframes impactTimestop {
+    0% { opacity: 0; transform: scale(0.3); }
+    15% { opacity: 1; background: radial-gradient(circle, rgba(0,255,255,0.8) 0%, rgba(138,43,226,0.5) 40%, transparent 70%); }
+    50% { opacity: 1; background: radial-gradient(circle, rgba(0,255,255,0.6) 0%, rgba(138,43,226,0.4) 30%, rgba(75,0,130,0.2) 60%, transparent 100%); }
+    100% { opacity: 0; transform: scale(1.5); }
 }
+
+.impact-overlay.timestop { animation: impactTimestop 0.8s ease-out; }
+MN}
+
+@keyframes impactTimestop {
+    0% { opacity: 0; transform: scale(0.3); }
+    15% { opacity: 1; background: radial-gradient(circle, rgba(0,255,255,0.8) 0%, rgba(138,43,226,0.5) 40%, transparent 70%); }
+    50% { opacity: 1; background: radial-gradient(circle, rgba(0,255,255,0.6) 0%, rgba(138,43,226,0.4) 30%, rgba(75,0,130,0.2) 60%, transparent 100%); }
+    100% { opacity: 0; transform: scale(1.5); }
+}
+
+.impact-overlay.timestop { animation: impactTimestop 0.8s ease-out; }
 
 .game-container.shake { animation: screenShake 0.25s ease-out; }
 @keyframes screenShake { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-4px, 3px); } 40% { transform: translate(4px, -3px); } 60% { transform: translate(-3px, 4px); } 80% { transform: translate(3px, -4px); } }
@@ -173,5 +191,7 @@ canvas { display: block; background: transparent; }
 .effect-indicator.freeze { color: var(--neon-blue); }
 .effect-indicator.clone { color: var(--neon-pink); }
 .effect-indicator.blackhole { color: #8800ff; }
+.effect-indicator.timestop { color: #00ffff; text-shadow: 0 0 20px #00ffff, 0 0 40px #8a2be2; }
+.effect-indicator.timestop { color: #00ffff; text-shadow: 0 0 20px #00ffff, 0 0 40px #8a2be2; }
 
 .hidden { display: none !important; }
