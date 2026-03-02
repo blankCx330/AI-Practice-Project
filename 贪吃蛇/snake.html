@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Snake</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <h1 class="game-title">
+        <span class="title-neon">NEON</span>
+        <span class="title-snake">SNAKE</span>
+    </h1>
+    
+    <div class="game-wrapper">
+        <div class="game-container" id="gameContainer">
+            <div class="arena">
+                <div class="arena-inner">
+                    <canvas id="gameCanvas" width="600" height="600"></canvas>
+                    <div class="arena-glow"></div>
+                </div>
+            </div>
+            
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">单机模式</span>
+            </div>
+            
+            <div class="effect-indicator" id="effectIndicator"></div>
+            <div class="impact-overlay" id="impactOverlay"></div>
+            
+            <div class="overlay start-screen" id="startScreen">
+                <div class="menu-content">
+                    <div class="logo-neon">🐍</div>
+                    <h2>NEON SNAKE</h2>
+                    <p class="subtitle">CHOOSE MODE</p>
+                    
+                    <div class="mode-buttons">
+                        <button class="btn mode-btn" onclick="startSinglePlayer()">
+                            <span>🎮</span> 单人模式
+                        </button>
+                        <button class="btn mode-btn" onclick="showOnlineMenu()">
+                            <span>🌐</span> 在线对战
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="overlay online-menu hidden" id="onlineMenu">
+                <div class="menu-content">
+                    <h2>ONLINE</h2>
+                    <p class="subtitle">输入服务器地址</p>
+                    
+                    <div class="server-input">
+                        <input type="text" id="serverAddress" placeholder="localhost:8080" value="localhost:8080">
+                        <input type="text" id="playerName" placeholder="你的名字" maxlength="12">
+                    </div>
+                    
+                    <div class="mode-buttons">
+                        <button class="btn" onclick="connectToServer()">
+                            <span>⚔️</span> 加入游戏
+                        </button>
+                        <button class="btn btn-back" onclick="showMainMenu()">
+                            返回
+                        </button>
+                    </div>
+                    
+                    <div class="players-list" id="playersList">
+                        <h3>等待玩家...</h3>
+                    </div>
+                    
+                    <button class="btn btn-start hidden" id="startBtn" onclick="startOnlineGame()">
+                        开始游戏
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overlay game-over hidden" id="gameOverScreen">
+                <div class="menu-content">
+                    <h2 id="winnerText">游戏结束</h2>
+                    <div class="final-scores" id="finalScores"></div>
+                    <button class="btn" onclick="returnToMenu()">返回菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="score-panel" id="scorePanel"></div>
+    </div>
+    
+    <!-- 技能说明 -->
+    <div class="skill-bar" id="skillBar">
+        <div class="skill" id="skillQ">
+            <div class="skill-key">Q</div>
+            <div class="skill-name">核弹</div>
+            <div class="skill-desc">清理全图得分</div>
+            <div class="skill-cd"><div class="skill-cd-bar" id="cooldownQ"></div></div>
+        </div>
+        <div class="skill" id="skillW">
+            <div class="skill-key">W</div>
+            <div class="skill-name">冰霜领域</div>
+            <div class="skill-desc">冰冻得分点</div>
+            <div class="skill-cd"><div class="skill-cd-bar" id="cooldownW"></div></div>
+        </div>
+        <div class="skill" id="skillE">
+            <div class="skill-key">E</div>
+            <div class="skill-name">镜像分身</div>
+            <div class="skill-desc">最多5个分身</div>
+            <div class="skill-cd"><div class="skill-cd-bar" id="cooldownE"></div></div>
+        </div>
+            <div class="skill-key">E</div>
+            <div class="skill-name">镜像分身</div>
+            <div class="skill-desc">自动收集</div>
+            <div class="skill-cd"><div class="skill-cd-bar" id="cooldownE"></div></div>
+        </div>
+        <div class="skill" id="skillR">
+            <div class="skill-key">R</div>
+            <div class="skill-name">黑洞</div>
+            <div class="skill-desc">吸引全图得分</div>
+            <div class="skill-cd"><div class="skill-cd-bar" id="cooldownR"></div></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
