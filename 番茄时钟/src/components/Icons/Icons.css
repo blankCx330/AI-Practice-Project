@@ -1,0 +1,41 @@
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Header title icon */
+.app-title .icon {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Timer tip icon */
+.timer-tip .icon {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Settings section icons */
+.settings-title .icon {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.settings-footer .icon {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Stat card icons */
+.stat-icon .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

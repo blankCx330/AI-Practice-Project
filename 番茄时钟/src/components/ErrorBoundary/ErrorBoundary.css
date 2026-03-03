@@ -1,0 +1,84 @@
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fff9f5 100%);
+}
+
+.error-content {
+  max-width: 400px;
+  padding: 40px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-title {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.error-message {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.error-details {
+  margin-bottom: 20px;
+  text-align: left;
+  background: #f8f8f8;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.error-details summary {
+  cursor: pointer;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.error-details pre {
+  margin: 8px 0 0;
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 11px;
+  color: #c00;
+}
+
+.error-reset-btn {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  background: #ff6b6b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-reset-btn:hover {
+  background: #ff5252;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.error-reset-btn:active {
+  transform: translateY(0);
+}

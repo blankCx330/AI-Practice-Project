@@ -1,0 +1,15 @@
+/* App样式 */
+* {
+  box-sizing: border-box;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .app {
+    font-size: 14px;
+  }
+}

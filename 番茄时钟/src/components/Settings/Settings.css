@@ -1,0 +1,188 @@
+/* Settings组件样式 */
+.settings-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.settings-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f5f5f5;
+}
+
+.setting-item {
+  margin-bottom: 24px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-adjust-btn {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.time-adjust-btn:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.time-adjust-btn:active {
+  transform: scale(0.95);
+}
+
+.time-display {
+  min-width: 60px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.toggle-btn {
+  padding: 8px 24px;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  border-color: transparent;
+  color: white;
+}
+
+.test-sound-btn {
+  padding: 8px 16px;
+  border: 2px solid #ff6b6b;
+  border-radius: 20px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ff6b6b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+}
+
+.test-sound-btn:hover {
+  background: #ff6b6b;
+  color: white;
+}
+
+.danger-btn {
+  width: 100%;
+  padding: 12px 24px;
+  border: 2px solid #ff4757;
+  border-radius: 12px;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff4757;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.danger-btn:hover {
+  background: #ff4757;
+  color: white;
+}
+
+.setting-hint {
+  margin: 8px 0 0 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.settings-footer {
+  text-align: center;
+  padding: 16px;
+  color: #999;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .settings-container {
+    padding: 16px;
+  }
+
+  .settings-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .settings-section {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .time-display {
+    font-size: 20px;
+    min-width: 50px;
+  }
+
+  .time-adjust-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+}
