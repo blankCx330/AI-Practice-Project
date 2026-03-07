@@ -1,0 +1,18 @@
+# Learning Plan Manager - Deployment Configuration
+# For Vercel deployment
+
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
